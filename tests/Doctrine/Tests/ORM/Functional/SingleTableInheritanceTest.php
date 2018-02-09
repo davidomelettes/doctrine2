@@ -7,11 +7,13 @@ namespace Doctrine\Tests\ORM\Functional;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Mapping\FetchMode;
 use Doctrine\ORM\Persisters\PersisterException;
+use Doctrine\Tests\Models\Company\BaseCompany;
 use Doctrine\Tests\Models\Company\CompanyContract;
 use Doctrine\Tests\Models\Company\CompanyEmployee;
 use Doctrine\Tests\Models\Company\CompanyFixContract;
 use Doctrine\Tests\Models\Company\CompanyFlexContract;
 use Doctrine\Tests\Models\Company\CompanyFlexUltraContract;
+use Doctrine\Tests\Models\Company\ShellShellCompany;
 use Doctrine\Tests\OrmFunctionalTestCase;
 use ProxyManager\Proxy\GhostObjectInterface;
 
@@ -22,6 +24,7 @@ class SingleTableInheritanceTest extends OrmFunctionalTestCase
     private $fix;
     private $flex;
     private $ultra;
+    private $shellShell;
 
     public function setUp()
     {
@@ -95,9 +98,13 @@ class SingleTableInheritanceTest extends OrmFunctionalTestCase
         $this->ultra->addEngineer($this->engineers[3]);
         $this->ultra->addEngineer($this->engineers[0]);
 
+        $this->shellShell = new ShellShellCompany();
+        $this->shellShell->setName('Shell Shell Corp');
+
         $this->em->persist($this->fix);
         $this->em->persist($this->flex);
         $this->em->persist($this->ultra);
+        $this->em->persist($this->shellShell);
         $this->em->flush();
         $this->em->clear();
     }
@@ -419,5 +426,20 @@ class SingleTableInheritanceTest extends OrmFunctionalTestCase
             ->getSingleResult();
 
         self::assertNotInstanceOf(GhostObjectInterface::class, $contract->getSalesPerson());
+    }
+
+    public function testHydrationOfSubclassSubclass()
+    {
+        $this->loadFullFixture();
+
+        $shellShellCompanies = $this->em->getRepository(ShellShellCompany::class)
+            ->findAll();
+
+        self::assertCount(1, $shellShellCompanies);
+
+        $shellShellCompaniesByBaseCompanyRepo = $this->em->getRepository(BaseCompany::class)
+            ->findAll();
+
+        self::assertCount(1, $shellShellCompaniesByBaseCompanyRepo);
     }
 }
